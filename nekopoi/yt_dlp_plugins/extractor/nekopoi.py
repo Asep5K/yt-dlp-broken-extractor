@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
-from yt_dlp.utils import int_or_none, urljoin
+from yt_dlp.utils import int_or_none, urljoin, ExtractorError
 
 sys.path.insert(0, str(Path(__file__).parent))
 from .streampoi import StreamPoiIE
