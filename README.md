@@ -6,6 +6,7 @@
 - ✅ **[Animeku.site](https://animeku.site/)**
 - ✅ **[Nekopoi.care](https://nekopoi.care/)**
 - ✅ **[Otakudesu.best](https://otakudesu.best/)**
+- ✅ **[Saikonime.com](https://tv.saikonime.com/)**
 - ✅ **[Samehadaku.how](https://v1.samehadaku.how/)**
 
 ## Why "Multi Broken"?
@@ -30,3 +31,14 @@ python -m pip install -U https://github.com/Asep5K/yt-dlp-broken-extractor/archi
 ```
 <!-- when yh -->
 <!-- when when -->
+## 🗺️ Roadmap (TODO List)
+
+```python
+# TODO: Benerin semua extractor
+# TODO: Fix cloudflare bypass
+# TODO: Handle semua error
+# TODO: Bikin extractor yang gak broken
+# TODO: ????
+# TODO: Profit
+# TODO: "Tujuan akhir: broken tapi berguna"
+```

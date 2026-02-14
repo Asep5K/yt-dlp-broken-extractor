@@ -10,6 +10,7 @@ packages = []
 "nekopoi/yt_dlp_plugins" = "yt_dlp_plugins"
 "otakudesu/yt_dlp_plugins" = "yt_dlp_plugins"
 "samehadaku/yt_dlp_plugins" = "yt_dlp_plugins"
+"saikonime/yt_dlp_plugins" = "yt_dlp_plugins"
 
 [project] 
 name = "yt-dlp-broken-extractor"
