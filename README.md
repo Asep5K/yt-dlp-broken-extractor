@@ -9,20 +9,26 @@
 
 
 
+## **📺 Supported Sites**
 
-## Supported Sites:
-- ✅ **[Animeku.site](https://animeku.site/)**
-- ✅ **[Animepahe.si](https://animepahe.si/)**
-- ✅ **[Nekopoi.care](https://nekopoi.care/)**
-- ✅ **[Otakudesu.best](https://otakudesu.best/)**
-- ✅ **[Saikonime.com](https://tv.saikonime.com/)**
-- ✅ **[Samehadaku.how](https://v1.samehadaku.how/)**
+| Situs | Status | Keterangan |
+|-------|--------|------------|
+| **[animeku.site](https://animeku.site/)**         | ✅✅✅✅✅ | Works 100% (sepi) |
+| **[animepahe.si](https://animepahe.si/)**         | ✅✅✅⬜⬜ | 60% tested, 40% unknown |
+| **[nekopoi.care](https://nekopoi.care/)**         | ✅⬜⬜⬜⬜ | 20% works, 80% broken |
+| **[otakudesu.best](https://otakudesu.best/)**     | ⬜⬜⬜⬜⬜ | banyak broken, ribet di maintain|
+| **[saikonime.com](https://tv.saikonime.com/)**    | ✅⬜⬜⬜⬜ | kadang-kadang |
+| **[samehadaku.how](https://v1.samehadaku.how/)**  | ✅⬜⬜⬜⬜ | kadang-kadang |
 
-## Why "Multi Broken"?
+## **🎮 Juga Mampir ke Project Lain**:
+- **[wibu-downloader](https://github.com/Asep5K/wibu-downloader)**
+
+
+## **Why "Multi Broken"?**
 - Kode asal jalan
 - Filosofi: "Better broken than nothing"
 
-# Known Issues
+## **Known Issues**
 - Semua fitur adalah known issues
 - Tapi semua known issues adalah fitur
 - Gak semua video bisa di download/tonton, tapi pasti ada yang bisa
@@ -31,16 +37,14 @@
 - Skill issue njir
 
 
-## IT WORKS ON MY MACHINE
+## **IT WORKS ON MY MACHINE**
+
+## **INSTALASI**
+
+    python -m pip install -U https://github.com/Asep5K/yt-dlp-broken-extractor/archive/master.zip
 
 
-## INSTALASI
-```bash
-python -m pip install -U https://github.com/Asep5K/yt-dlp-broken-extractor/archive/master.zip
-```
-<!-- when yh -->
-<!-- when when -->
-## 🗺️ Roadmap (TODO List)
+## **🗺️ Roadmap (TODO List)**
 
 ```python
 # TODO: Benerin semua extractor
