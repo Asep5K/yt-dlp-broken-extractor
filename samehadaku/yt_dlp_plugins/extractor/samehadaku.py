@@ -1,104 +1,143 @@
 import re
 
 from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
-from yt_dlp.utils import urlencode_postdata
+from yt_dlp.utils import (
+    int_or_none,
+    parse_resolution,
+    random_user_agent,
+    str_or_none,
+    traverse_obj,
+    try_call,
+    urlencode_postdata,
+)
 
 
 class SameHadaKuIE(InfoExtractor):
+    """situs kok banyak iklan nya  kocak"""
     IE_NAME = 'samehadaku'
     _VALID_URL = r'https://v1\.samehadaku\.how/(?P<slug>[^/?]+)(?:-episode-\d+/)'
     _HEADERS = {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Origin': 'https://v1.samehadaku.how',
-            'Referer': 'https://v1.samehadaku.how/',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'iframe',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'cross-site',
-        }
+        'User-Agent': random_user_agent(),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': 'https://v1.samehadaku.how',
+        'Referer': 'https://v1.samehadaku.how/',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'iframe',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'cross-site',
+    }
 
+    def _clean_title(self, title):
+        return self._search_regex(
+            r'(.*?)\s*(?:Sub\s*Indo|subtitle\s*indonesia)?\s*-?\s*Samehadaku',
+            title, name='title cleaner', fatal=False,
+            default=title, flags=(re.IGNORECASE | re.DOTALL))
 
-    @staticmethod
-    def _parse_link(webpage):
-        # pattern = r'data-post="(?P<id>\d+)"\sdata-nume="(?P<number>\d+)"\sdata-type="(?P<type>[A-Za-z]+)"><span>(.+[^<])\s(?P<res>\d+p)[</]'
-        pattern = (
-                r'data-post="(?P<id>\d+)"\s' #id?
-                r'data-nume="(?P<number>\d+)"\s' # number?
-                r'data-type="(?P<type>[A-Za-z]+)"><span>(.+[^<])\s' #type nya apa?
-                r'(?P<res>\d+p)[</]' # reolusi nya berapa?
-        )
-        return [m.groupdict() for m in re.finditer(pattern, webpage)]
-
-
-    def _get_direct_link(self, data_post, nume, data_type):
-        url = 'https://v1.samehadaku.how/wp-admin/admin-ajax.php'
-        post_data = {
+    def _get_page_url(self, nume, video_id):
+        ajax_url = 'https://v1.samehadaku.how/wp-admin/admin-ajax.php'
+        data_post = {
             'action': 'player_ajax',
-            'post': data_post,
+            'post': video_id,
             'nume': nume,
-            'type': data_type,
+            'type': 'schtml',
         }
-
-        response = self._request_webpage(url, data_post,
-                    data=urlencode_postdata(post_data), headers=self._HEADERS)
-
-        return self._webpage_read_content(response, url, data_post, note='frfrfrrf')
-
-
-    @staticmethod
-    def _parse_direct_link(html):
-        pattern = r'<iframe\ssrc="(https://(?:s0|www)\.(?:wibufile|blogger)\.com[^"]+)(?:\.mp4)?'
-        match = re.search(pattern, html)
-        if match:
-            return match.group(1)
+        response = self._request_webpage(ajax_url, 'URLs page',
+                                         headers=self._HEADERS,
+                                         data=urlencode_postdata(data_post))
+        if response:
+            return self._webpage_read_content(response, ajax_url, data_post, note='read ajax page')
         return None
 
+    @staticmethod
+    def _parse_resolution(url):
+        if not url:
+            return None
+        resolution = parse_resolution(url)
+        if resolution and isinstance(resolution, dict):
+            return resolution.get('height')
+        res_map = {'FULLHD': 1080, 'SD': 480, 'HD': 720}
+        for f, r in res_map.items():
+            if f in url:
+                return r
+        return None
+
+    def _parse_wibufile(self, url):
+        if not url.endswith('.mp4'):
+            wibufile_page = self._download_webpage(url, 'wibufile api',
+                                                   fatal=False, tries=10, headers=self._HEADERS, timeout=5)
+            pattern = r'\$\.ajax\(\{\s*url:\s*"(.*?)",'
+            ajax_url = self._search_regex(pattern, wibufile_page, 'ajax request')
+            data_str = self._download_webpage(ajax_url, 'ajax sendiri')
+            data_dict = self._parse_json(data_str, 'wibufile url')
+            if data_dict:
+                url = traverse_obj(data_dict, ('sources', ..., 'file'))[0]
+        if url:
+            return self._build_format(url)
+        return None
+
+    def _parse_filedon(self, url):
+        webpage = self._download_webpage(url, 'fildeon webpage')
+        jeson_str = self._html_search_regex(r'data-page\s*=\s*"([^"]+)"',
+                                            webpage, 'json str', flags=re.DOTALL)
+        jeson_dict = self._parse_json(jeson_str, 'filedon json')
+        if jeson_dict:
+            url = traverse_obj(jeson_dict, ('props', 'url'))
+            return self._build_format(url)
+        return None
+
+    def _build_format(self, url):
+        fmt_map = {360: '18', 480: '35', 720: '22', 1080: '37'}
+        res = try_call(lambda: self._parse_resolution(url))
+        return {
+            'url': url,
+            'quality': str_or_none(f'{res}p'),
+            'format_id': fmt_map[res],
+            'resolution': int_or_none(res),
+            'height': res,
+            'width': int_or_none((res * 16) / 9),
+        }
+
+    def _get_urls(self, webpage):
+        patterns = r'data-post="(?P<id>\d+)"\s*data-nume="(?P<nume>\d+)"'
+        url_pattern = r'<iframe\s*src="(.*?[^"]+)'
+        urls = []
+        for data in re.finditer(patterns, webpage, re.DOTALL):
+            iframe_page = self._get_page_url(nume=data.group('nume'), video_id=data.group('id'))
+            url = self._html_search_regex(url_pattern, iframe_page, 'grep url', flags=(re.DOTALL | re.IGNORECASE))
+            if url:
+                urls.append(url)
+        return urls, data.group('id')
+
+    def _extract_url(self, url):
+        parser_map = {
+            'wibufile': self._parse_wibufile,
+            'filedon': self._parse_filedon,
+            # 'blogger': lambda u: self.url_result
+        }
+        for site_name, parser in parser_map.items():
+            if site_name in url:
+                result = parser(url)
+                if result:
+                    return result
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        soup = mobj.group('slug')
-        webpage = self._download_webpage(url, soup)
-        players = self._parse_link(webpage)
-
+        slug = self._match_valid_url(url).group('slug')
+        webpage = self._download_webpage(url, slug)
+        urls, video_id = self._get_urls(webpage)
+        video_title = try_call(lambda: self._html_extract_title(webpage),
+                               self._og_search_title(webpage))
         formats = []
-        video_id = 'null'
-
-        for player in players:
-            data_post = player.get('id')
-            nume = player.get('number')
-            data_type = player.get('type')
-            resol = player.get('res')
-            video_id = data_post
-
-            ajax_html = self._get_direct_link(data_post, nume, data_type)
-            video_url = self._parse_direct_link(ajax_html)
-
-            # Blogger fallback
-            if video_url and 'blogger.com' in video_url:
-                try:
-                    blogger_page = self._download_webpage(video_url, nume)
-                    pat = r'"play_url":"(https://[^",]+)'
-                    match = re.search(pat, blogger_page)
-                    if match:
-                        video_url = match.group(1)
-                except Exception as e:
-                    self.report_warning(f"Error {e}")
-
-            if video_url:
-                formats.append({
-                    'url': video_url,
-                    'resolution': resol,
-                    'format_id': resol,
-                })
-
+        for url in urls:
+            data_dict = self._extract_url(url)
+            if data_dict and isinstance(data_dict, dict):
+                formats.append(data_dict)
         return {
-            'title': self._og_search_title(webpage),
             'id': video_id,
+            'title': self._clean_title(video_title),
             'formats': formats,
         }
 
@@ -108,69 +147,43 @@ class SameHadaKuPlaylistIE(SameHadaKuIE):
     _VALID_URL = r'https://v1\.samehadaku\.how/anime/(?P<slug>[^/?]+)'
 
     @staticmethod
-    def _get_valid_link(webpage):
-        pattern = r'href="(https://v1\.samehadaku\.how/[^"]+-episode-\d+/?)"'
+    def _get_valid_urls(webpage, pattern=r'href="(https://v1\.samehadaku\.how/[^"]+-episode-\d+/?)"'):
         matches = re.findall(pattern, webpage)
-
         if matches:
             return matches
-
         return None
-
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        soup = mobj.group('slug')
-        webpage = self._download_webpage(url, soup)
-
-        links = self._get_valid_link(webpage)
+        slug = self._match_valid_url(url).group('slug')
+        webpage = self._download_webpage(url, slug)
+        playlist_id = self._html_search_regex(r'id="post-(\d+)"', webpage, 'playlist id', default=slug)
+        urls = self._get_valid_urls(webpage)
         dups = set()
-
         entries = []
-        for link in links:
-            if link and link not in dups:
-                dups.add(link)
-                entries.append(self.url_result(
-                        link,
-                        ie=SameHadaKuIE,
-                        video_id=soup,
-                    ),
-                )
-
+        for url in urls:
+            if url and url not in dups:
+                dups.add(url)
+                entries.append(self.url_result(url, ie=SameHadaKuIE, video_id=slug))
         return self.playlist_result(
             reversed(entries),
-            playlist_id=soup,
-            playlist_title=self._og_search_title(webpage),
+            playlist_id=playlist_id,
+            playlist_title=self._clean_title(self._og_search_title(webpage)),
         )
 
-class SameHadaKuSearchIE(SearchInfoExtractor, SameHadaKuIE):
+
+class SameHadaKuSearchIE(SearchInfoExtractor, SameHadaKuPlaylistIE):
     IE_NAME = 'samehadaku:search'
     _SEARCH_KEY = 'samehadaku'
-    _BASE_URL = 'https://v1.samehadaku.how'
+
     # https://v1.samehadaku.how/?s=oshi+no+ko
-
-    def _get_html_page(self, query: str) -> str:
-        return self._download_webpage(self._BASE_URL, video_id=query,
-                    data=urlencode_postdata({ 's': query }), headers=self._HEADERS,
-                    )
-
-    def _get_valid_url(self, query: str) -> list:
-        webpage = self._get_html_page(query)
-
-        query = query.replace(' ', '-')
-
-        pattern = fr'href="(https://v1\.samehadaku\.how/anime/{query}(?:-season-\d)?[^"?]+)'
-
-        match = re.findall(pattern, webpage, re.IGNORECASE)
-
-        if isinstance(match, list):
-            return match
-
-        return None
-
-
     def _search_results(self, query):
-        valid_url = self._get_valid_url(query)
+        data = urlencode_postdata({'s': query})
+        webpage = self._download_webpage(
+            'https://v1.samehadaku.how',
+            video_id='search page', data=data,
+            headers=self._HEADERS)
+        query = query.replace(' ', '-')
+        valid_url = self._get_valid_urls(webpage,
+                                         rf'href="(https://v1\.samehadaku\.how/anime/{query}(?:-season-\d)?[^"?]+)')
         for url in valid_url:
             yield self.url_result(url, ie=SameHadaKuPlaylistIE, video_id=query)
-
