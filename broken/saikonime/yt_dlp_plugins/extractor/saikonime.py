@@ -28,7 +28,7 @@ class SaikoNimeIE(InfoExtractor):
         video_id = embed_url.split('/')[-1]
 
         blogger_link = self._get_blogger_link(embed_url, video_id)
-
+        print(blogger_link)
         # biarkan extractor lain berkerja
         return self.url_result(url=blogger_link, ie='Blogger', video_id=video_id, video_title=video_metadata['name'])
 

@@ -6,16 +6,13 @@ build-backend = "hatchling.build"
 packages = []
 
 [tool.hatch.build.targets.wheel.force-include]
-"animeku/yt_dlp_plugins" = "yt_dlp_plugins"
 "animepahe/yt_dlp_plugins" = "yt_dlp_plugins"
 "nekopoi/yt_dlp_plugins" = "yt_dlp_plugins"
-"otakudesu/yt_dlp_plugins" = "yt_dlp_plugins"
 "samehadaku/yt_dlp_plugins" = "yt_dlp_plugins"
-"saikonime/yt_dlp_plugins" = "yt_dlp_plugins"
 
 [project] 
 name = "yt-dlp-broken-extractor"
-version = "0.0.2"
+version = "0.0.3"
 requires-python = ">=3.11"
 readme = "README.md"
 description = "broken extractor"
