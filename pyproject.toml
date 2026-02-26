@@ -12,7 +12,7 @@ packages = []
 
 [project] 
 name = "yt-dlp-broken-extractor"
-version = "0.0.3"
+version = "0.0.4"
 requires-python = ">=3.11"
 readme = "README.md"
 description = "broken extractor"

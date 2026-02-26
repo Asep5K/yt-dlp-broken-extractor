@@ -13,9 +13,59 @@
 | Situs | Status | Keterangan |
 |-------|--------|------------|
 | **[animepahe.si](https://animepahe.si/)**         | ✅✅✅⬜⬜ | 60% tested, 40% unknown |
-| **[nekopoi.care](https://nekopoi.care/)**         | ⬜⬜⬜⬜⬜ | ketar-ketir, dipasangin 2 proteksi (sementara broken) |
+| **[nekopoi.care](https://nekopoi.care/)**         | ✅⬜⬜⬜⬜ | kadang-kiding (perlu cookies) |
 | **[samehadaku.how](https://v1.samehadaku.how/)**  | ✅⬜⬜⬜⬜ | kadang-kadang |
 ---
+
+## **NOTE**:
+
+### **Extractor [nekopoi](./nekopoi/yt_dlp_plugins/extractor/nekopoi.py)**:
+
+**Gunakan `--cookies-from-browser`**
+
+**Contoh**:
+    
+    # Linux
+    yt-dlp --cookies-from-browser 'brave+GNOMEKEYRING' <URL> 
+    
+    # Termux 
+    gak bisa wkwkwk
+    
+    # windawg??, idk lol
+    # maybe 
+    yt-dlp --cookies-from-browser brave <URL>
+
+
+**sesuaikan dengan browser dan keyring kalian**     
+<!-- **Supported keyrings are: BASICTEXT, GNOMEKEYRING, KWALLET, KWALLET5, KWALLET6** -->
+<!-- ****: -->
+|**Supported keyrings are**:|
+|---------------------------|
+| `BASICTEXT`               |
+| `GNOMEKEYRING`            | 
+| `KWALLET`                 |
+| `KWALLET5`                |
+| `KWALLET6`                |
+
+|**Supported browsers are**: |
+|----------------------------|
+| `brave`                    |
+| `chrome`                   |
+| `chromium`                 |
+| `edge`                     |
+| `firefox`                  |
+| `opera`                    |
+| `safari`                   |
+| `vivaldi`                  |
+| `whale`                    |
+---
+**ERROR**: `[nekopoi] Unable to download webpage: HTTP Error 468: <none> (caused by <HTTPError 468: <none>>)`
+
+**Tinggal reload aja page nekopoi nya**  
+**kalo masih error, yaudah sih (peduli apa gw)**
+
+---
+
 ## **🎮 Juga Mampir ke Project Lain**:
 - **[wibu-downloader](https://github.com/Asep5K/wibu-downloader)**
 
