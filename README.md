@@ -9,11 +9,12 @@
 
 ## **📺 Supported Sites**
 
-<!-- | **[nekopoi.care](https://nekopoi.care/)**         | ✅⬜⬜⬜⬜ | 20% works, 80% broken | -->
 | Situs | Status | Keterangan |
 |-------|--------|------------|
 | **[animepahe.si](https://animepahe.si/)**         | ✅✅✅⬜⬜ | 60% tested, 40% unknown |
 | **[nekopoi.care](https://nekopoi.care/)**         | ✅⬜⬜⬜⬜ | kadang-kiding (perlu cookies) |
+| **[hentaicop.com](https://hentaicop.com/)**       | ✅✅⬜⬜⬜ | 20% tested, 80% unknown |
+| **[minioppai.org](https://minioppai.org/)**       | ✅⬜⬜⬜⬜ | kadang-kiding, masih asal jadi |
 | **[samehadaku.how](https://v1.samehadaku.how/)**  | ✅⬜⬜⬜⬜ | kadang-kadang |
 ---
 

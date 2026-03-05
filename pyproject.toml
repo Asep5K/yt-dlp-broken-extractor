@@ -7,12 +7,14 @@ packages = []
 
 [tool.hatch.build.targets.wheel.force-include]
 "animepahe/yt_dlp_plugins" = "yt_dlp_plugins"
+"hentaicop/yt_dlp_plugins" = "yt_dlp_plugins"
+"minioppai/yt_dlp_plugins" = "yt_dlp_plugins"
 "nekopoi/yt_dlp_plugins" = "yt_dlp_plugins"
 "samehadaku/yt_dlp_plugins" = "yt_dlp_plugins"
 
 [project] 
 name = "yt-dlp-broken-extractor"
-version = "0.0.4"
+version = "0.0.5"
 requires-python = ">=3.11"
 readme = "README.md"
 description = "broken extractor"
@@ -31,6 +33,24 @@ dependencies = [
 license = "GPL-3.0-or-later"
 license-files = [ "LICENSE" ]
 
+[project.optional-dependencies]
+static-analysis = [
+    "ruff>=0.15.0",
+    "autopep8>=2.0",
+]
+
+[tool.hatch.envs.hatch-static-analysis]
+detached = true
+features = ["static-analysis"]
+dependencies = []  # override hatch ruff version
+config-path = "pyproject.toml"
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = "autopep8 --diff {args:.}"
+format-fix = "autopep8 --in-place {args:.}"
+lint-check = "ruff check {args:.}"
+lint-fix = "ruff check --fix {args:.}"
+
 [tool.ruff]
 line-length = 120
 
@@ -39,7 +59,8 @@ quote-style = "single"
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
-multiline-quotes = "single"
+# multiline-quotes = "single"
+multiline-quotes = "double"
 docstring-quotes = "double"
 avoid-escape = false
 
