@@ -10,7 +10,7 @@ from yt_dlp.utils import urljoin
 # jangan protes kalo kualitas kode nya jelek
 # gw bukan programmer / yang ngerti banget python
 # gw cuma iseng belajar aja
-class MyVidPlayIE(InfoExtractor):
+class _MyVidPlayIE(InfoExtractor):
     _VALID_URL = False
     _EMBED_REGEX = [
         r'iframe\s*src=(https://myvidplay\.com/.*?)$',
@@ -45,9 +45,7 @@ class MyVidPlayIE(InfoExtractor):
     def _get_valid_url(self, md5, token):
         random, expiry = self._generate_random_token()
         md5_url = urljoin('https://myvidplay.com', md5)
-        base_url = self._download_webpage(md5_url, 'base URL',
-                                          tries=10, timeout=30,
-                                          errnote='Failed to download MyVidPlay page')
+        base_url = self._download_webpage(md5_url, 'base URL', tries=10, timeout=30, errnote='Failed to download MyVidPlay page')
         if not base_url:
             self.report_warning('gak nemu base url nya njir')
             return
@@ -55,9 +53,7 @@ class MyVidPlayIE(InfoExtractor):
         return f'{base_url}{random}{token}{expiry}'
 
     def _parse_height_from_title(self, title):
-        height = self._search_regex(r'\[?(\d+p)\]?', title,
-                                    'parse height', flags=re.IGNORECASE,
-                                    default=0, fatal=False)
+        height = self._search_regex(r'\[?(\d+p)\]?', title, 'parse height', flags=re.IGNORECASE, default=0, fatal=False)
         if height:
             format_id = height.lower()
             height = int(format_id.replace('p', '')) if 'p' in format_id else format_id

@@ -3,14 +3,7 @@ requires = [ "hatchling>=1.27.0" ]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = []
-
-[tool.hatch.build.targets.wheel.force-include]
-"animepahe/yt_dlp_plugins" = "yt_dlp_plugins"
-"hentaicop/yt_dlp_plugins" = "yt_dlp_plugins"
-"minioppai/yt_dlp_plugins" = "yt_dlp_plugins"
-"nekopoi/yt_dlp_plugins" = "yt_dlp_plugins"
-"samehadaku/yt_dlp_plugins" = "yt_dlp_plugins"
+packages = ["yt_dlp_plugins"]
 
 [project] 
 name = "yt-dlp-broken-extractor"

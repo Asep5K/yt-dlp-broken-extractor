@@ -1,4 +1,3 @@
-
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
     decode_packed_codes,  # kurang baca source code aku kang 😅
@@ -9,7 +8,7 @@ from yt_dlp.utils import (
 # jangan protes kalo kualitas kode nya jelek
 # gw bukan programmer / yang ngerti banget python
 # gw cuma iseng belajar aja
-class StreamPoiIE(InfoExtractor):
+class _StreamPoiIE(InfoExtractor):
     _VALID_URL = False
     _EMBED_REGEX = [
         r'<iframe\s*src=(https://streampoi\.com/.*?)',
@@ -21,10 +20,18 @@ class StreamPoiIE(InfoExtractor):
         if not webpage:
             return []
         js = self._get_packed_js(url, webpage)
-        m3u8_url = self._search_regex(r'file\s*:\s*"([^"]+master\.m3u8[^"]*)"', js, 'm3u8 URL', fatal=False, default=None)
+        m3u8_url = self._search_regex(
+            r'file\s*:\s*"([^"]+master\.m3u8[^"]*)"',
+            js,
+            'm3u8 URL',
+            fatal=False,
+            default=None,
+        )
         try:
             return self._extract_m3u8_formats(
-                m3u8_url, video_id='streampoi', ext='mp4',
+                m3u8_url,
+                video_id='streampoi',
+                ext='mp4',
             )
         except Exception as e:
             self.report_warning(f'StreamPoi: gagal extract formats: {e}')

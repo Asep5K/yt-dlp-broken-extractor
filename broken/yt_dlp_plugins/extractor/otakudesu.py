@@ -10,13 +10,13 @@ from yt_dlp.utils import urlencode_postdata
 class OtakuDesuBase(InfoExtractor):
     """BASE OTAKUDESU EXTRACTOR"""
 
-    _BASE_URL_RE = r"https://otakudesu\.best/%s"
-    _AJAX = "https://otakudesu.best/wp-admin/admin-ajax.php"
+    _BASE_URL_RE = r'https://otakudesu\.best/%s'
+    _AJAX = 'https://otakudesu.best/wp-admin/admin-ajax.php'
     _HEADERS = {
-        "X-Requested-With": "XMLHttpRequest",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Referer": "https://otakudesu.best/",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://otakudesu.best/',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
     }
 
     @staticmethod
@@ -31,7 +31,7 @@ class OtakuDesuBase(InfoExtractor):
         """Decode base64-encoded data string to dict."""
         try:
             decoded_bytes = base64.b64decode(data_encoded)
-            decoded_str = decoded_bytes.decode("utf-8")
+            decoded_str = decoded_bytes.decode('utf-8')
             return json.loads(decoded_str)
         except (base64.binascii.Error, json.JSONDecodeError, UnicodeDecodeError):
             return None
@@ -51,7 +51,7 @@ class OtakuDesuBase(InfoExtractor):
 
     def _fetch_nonce_token(self, action: str) -> str | None:
         """Fetch nonce token from AJAX endpoint."""
-        data = {"action": action}
+        data = {'action': action}
         try:
             response = self._request_webpage(
                 self._AJAX,
@@ -63,21 +63,21 @@ class OtakuDesuBase(InfoExtractor):
                 return None
             response_text = self._webpage_read_content(response, self._AJAX, None)
             response_json = json.loads(response_text)
-            return response_json.get("data")
+            return response_json.get('data')
         except (json.JSONDecodeError, AttributeError):
             return None
 
     def _get_iframe_html(self, data: dict[str, Any], action: str, nonce: str) -> str | None:
         """Fetch and decode iframe HTML from AJAX endpoint."""
         data_video = {
-            "action": action,
-            "nonce": nonce,
+            'action': action,
+            'nonce': nonce,
             **data,
         }
         try:
             response = self._request_webpage(
                 self._AJAX,
-                video_id=str(data.get("id", "")),
+                video_id=str(data.get('id', '')),
                 data=urlencode_postdata(data_video),
                 headers=self._HEADERS,
             )
@@ -87,8 +87,8 @@ class OtakuDesuBase(InfoExtractor):
             response_text = self._webpage_read_content(response, self._AJAX, None)
             response_json = json.loads(response_text)
 
-            if "data" in response_json:
-                return base64.b64decode(response_json["data"]).decode("utf-8")
+            if 'data' in response_json:
+                return base64.b64decode(response_json['data']).decode('utf-8')
         except (
             base64.binascii.Error,
             json.JSONDecodeError,
@@ -116,17 +116,17 @@ class OtakuDesuBase(InfoExtractor):
 class OtakuDesuIE(OtakuDesuBase):
     """OtakuDesu episode extractor."""
 
-    IE_NAME = "otakudesu"
-    _VALID_URL = OtakuDesuBase._BASE_URL_RE % r"episode/(?P<slug>[^/]+?)(?:/|$)"
+    IE_NAME = 'otakudesu'
+    _VALID_URL = OtakuDesuBase._BASE_URL_RE % r'episode/(?P<slug>[^/]+?)(?:/|$)'
 
     def _real_extract(self, url: str) -> dict[str, Any]:
-        slug = self._match_valid_url(url).group("slug")
+        slug = self._match_valid_url(url).group('slug')
         webpage = self._download_webpage(url, slug)
 
         data_contents = self._extract_data_contents(webpage)
         if not data_contents:
-            self.report_warning("No data-content found in webpage")
-            return {"id": slug, "formats": []}
+            self.report_warning('No data-content found in webpage')
+            return {'id': slug, 'formats': []}
 
         action, nonce = self._extract_nonce_data(webpage)
         nonce_token = None
@@ -134,8 +134,8 @@ class OtakuDesuIE(OtakuDesuBase):
             nonce_token = self._fetch_nonce_token(nonce)
 
         if not nonce_token:
-            self.report_warning("Failed to fetch nonce token")
-            return {"id": slug, "formats": []}
+            self.report_warning('Failed to fetch nonce token')
+            return {'id': slug, 'formats': []}
 
         formats = []
         for data_str in data_contents:
@@ -151,35 +151,35 @@ class OtakuDesuIE(OtakuDesuBase):
             if not direct_url:
                 continue
 
-            quality = data_dict.get("q", "")
-            height = int(quality.replace("p", "")) if quality else None
+            quality = data_dict.get('q', '')
+            height = int(quality.replace('p', '')) if quality else None
 
             formats.append(
                 {
-                    "url": direct_url,
-                    "ext": "mp4",
-                    "resolution": quality,
-                    "format_id": str(data_dict.get("i", "")),
-                    "quality": height,
-                    "height": height,
-                }
+                    'url': direct_url,
+                    'ext': 'mp4',
+                    'resolution': quality,
+                    'format_id': str(data_dict.get('i', '')),
+                    'quality': height,
+                    'height': height,
+                },
             )
 
         # Sort by quality descending
-        formats.sort(key=lambda x: x.get("quality") or 0, reverse=True)
+        formats.sort(key=lambda x: x.get('quality') or 0, reverse=True)
 
         return {
-            "id": str(data_dict.get("id", slug)) if data_dict else slug,
-            "title": self._og_search_title(webpage, default=slug),
-            "formats": formats,
+            'id': str(data_dict.get('id', slug)) if data_dict else slug,
+            'title': self._og_search_title(webpage, default=slug),
+            'formats': formats,
         }
 
 
 class OtakuDesuPlaylistIE(OtakuDesuBase):
     """OtakuDesu anime playlist extractor."""
 
-    IE_NAME = "otakudesu:playlist"
-    _VALID_URL = OtakuDesuBase._BASE_URL_RE % r"anime/(?P<slug>[^/]+)"
+    IE_NAME = 'otakudesu:playlist'
+    _VALID_URL = OtakuDesuBase._BASE_URL_RE % r'anime/(?P<slug>[^/]+)'
 
     @staticmethod
     def _extract_episode_links(webpage: str) -> list[str]:
@@ -196,16 +196,16 @@ class OtakuDesuPlaylistIE(OtakuDesuBase):
         return list(reversed(unique_links))
 
     def _real_extract(self, url: str) -> dict[str, Any]:
-        slug = self._match_valid_url(url).group("slug")
+        slug = self._match_valid_url(url).group('slug')
         webpage = self._download_webpage(url, slug)
 
         episode_links = self._extract_episode_links(webpage)
         if not episode_links:
-            self.report_warning("No episode links found")
+            self.report_warning('No episode links found')
             return {
-                "id": slug,
-                "title": slug,
-                "entries": [],
+                'id': slug,
+                'title': slug,
+                'entries': [],
             }
 
         entries = []
@@ -215,7 +215,7 @@ class OtakuDesuPlaylistIE(OtakuDesuBase):
                     link,
                     ie=OtakuDesuIE,
                     video_id=slug,
-                )
+                ),
             )
 
         return self.playlist_result(

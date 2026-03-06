@@ -14,6 +14,7 @@ from yt_dlp.utils import (
 
 class SameHadaKuIE(InfoExtractor):
     """situs kok banyak iklan nya  kocak"""
+
     IE_NAME = 'samehadaku'
     _VALID_URL = r'https://v1\.samehadaku\.how/(?P<slug>[^/?]+)(?:-episode-\d+/)'
     _HEADERS = {
@@ -34,8 +35,12 @@ class SameHadaKuIE(InfoExtractor):
     def _clean_title(self, title):
         return self._search_regex(
             r'(.*?)\s*(?:Sub\s*Indo|subtitle\s*indonesia)?\s*-?\s*Samehadaku',
-            title, name='title cleaner', fatal=False,
-            default=title, flags=(re.IGNORECASE | re.DOTALL))
+            title,
+            name='title cleaner',
+            fatal=False,
+            default=title,
+            flags=(re.IGNORECASE | re.DOTALL),
+        )
 
     def _get_page_url(self, nume, video_id):
         ajax_url = 'https://v1.samehadaku.how/wp-admin/admin-ajax.php'
@@ -45,9 +50,7 @@ class SameHadaKuIE(InfoExtractor):
             'nume': nume,
             'type': 'schtml',
         }
-        response = self._request_webpage(ajax_url, 'URLs page',
-                                         headers=self._HEADERS,
-                                         data=urlencode_postdata(data_post))
+        response = self._request_webpage(ajax_url, 'URLs page', headers=self._HEADERS, data=urlencode_postdata(data_post))
         if response:
             return self._webpage_read_content(response, ajax_url, data_post, note='read ajax page')
         return None
@@ -67,8 +70,7 @@ class SameHadaKuIE(InfoExtractor):
 
     def _parse_wibufile(self, url):
         if not url.endswith('.mp4'):
-            wibufile_page = self._download_webpage(url, 'wibufile api',
-                                                   fatal=False, tries=10, headers=self._HEADERS, timeout=5)
+            wibufile_page = self._download_webpage(url, 'wibufile api', fatal=False, tries=10, headers=self._HEADERS, timeout=5)
             pattern = r'\$\.ajax\(\{\s*url:\s*"(.*?)",'
             ajax_url = self._search_regex(pattern, wibufile_page, 'ajax request')
             data_str = self._download_webpage(ajax_url, 'ajax sendiri')
@@ -81,8 +83,7 @@ class SameHadaKuIE(InfoExtractor):
 
     def _parse_filedon(self, url):
         webpage = self._download_webpage(url, 'fildeon webpage')
-        jeson_str = self._html_search_regex(r'data-page\s*=\s*"([^"]+)"',
-                                            webpage, 'json str', flags=re.DOTALL)
+        jeson_str = self._html_search_regex(r'data-page\s*=\s*"([^"]+)"', webpage, 'json str', flags=re.DOTALL)
         jeson_dict = self._parse_json(jeson_str, 'filedon json')
         if jeson_dict:
             url = traverse_obj(jeson_dict, ('props', 'url'))
@@ -128,8 +129,7 @@ class SameHadaKuIE(InfoExtractor):
         slug = self._match_valid_url(url).group('slug')
         webpage = self._download_webpage(url, slug)
         urls, video_id = self._get_urls(webpage)
-        video_title = try_call(lambda: self._html_extract_title(webpage),
-                               self._og_search_title(webpage))
+        video_title = try_call(lambda: self._html_extract_title(webpage), self._og_search_title(webpage))
         formats = []
         for url in urls:
             data_dict = self._extract_url(url)
@@ -164,11 +164,7 @@ class SameHadaKuPlaylistIE(SameHadaKuIE):
             if url and url not in dups:
                 dups.add(url)
                 entries.append(self.url_result(url, ie=SameHadaKuIE, video_id=slug))
-        return self.playlist_result(
-            reversed(entries),
-            playlist_id=playlist_id,
-            playlist_title=self._clean_title(self._og_search_title(webpage)),
-        )
+        return self.playlist_result(reversed(entries), playlist_id=playlist_id, playlist_title=self._clean_title(self._og_search_title(webpage)))
 
 
 class SameHadaKuSearchIE(SearchInfoExtractor, SameHadaKuPlaylistIE):
@@ -178,12 +174,8 @@ class SameHadaKuSearchIE(SearchInfoExtractor, SameHadaKuPlaylistIE):
     # https://v1.samehadaku.how/?s=oshi+no+ko
     def _search_results(self, query):
         data = urlencode_postdata({'s': query})
-        webpage = self._download_webpage(
-            'https://v1.samehadaku.how',
-            video_id='search page', data=data,
-            headers=self._HEADERS)
+        webpage = self._download_webpage('https://v1.samehadaku.how', video_id='search page', data=data, headers=self._HEADERS)
         query = query.replace(' ', '-')
-        valid_url = self._get_valid_urls(webpage,
-                                         rf'href="(https://v1\.samehadaku\.how/anime/{query}(?:-season-\d)?[^"?]+)')
+        valid_url = self._get_valid_urls(webpage, rf'href="(https://v1\.samehadaku\.how/anime/{query}(?:-season-\d)?[^"?]+)')
         for url in valid_url:
             yield self.url_result(url, ie=SameHadaKuPlaylistIE, video_id=query)

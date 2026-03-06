@@ -4,29 +4,28 @@ from pathlib import Path
 
 from yt_dlp.extractor.common import InfoExtractor
 
-sys.path.insert(0, str(Path(__file__).parent))
-from .myvidplay import MyVidPlayIE
-from .streampoi import StreamPoiIE
+# sys.path.insert(0, str(Path(__file__).parent))
+from .myvidplay import _MyVidPlayIE
+from .streampoi import _StreamPoiIE
 
 
 # jangan protes kalo kualitas kode nya jelek
 # gw bukan programmer / yang ngerti banget python
 # gw cuma iseng belajar aja
-class NekoPoiIE(InfoExtractor): # dosa di tanggung senidri!!
+class NekoPoiIE(InfoExtractor):  # dosa di tanggung senidri!!
     IE_NAME = 'nekopoi'
     _VALID_URL = r'https://nekopoi\.care/(?P<slug>[\w-]+)/?$'
-    _EMBED_REGEX =[
-        r'https://nekopoi\.care/[\w-]+-episode-\d+-subtitle-indonesia/'
-    ]
-    _TESTS = [{
-        'url': 'https://nekopoi.care/l2d-sepongan-columbina-bagai-vakum-penghisap-sperma-genshin-impact',
-        'info_dict': {
-            'id': 'l2d-sepongan-columbina-bagai-vakum-penghisap-sperma-genshin-impact',
-            'title': 'Sepongan Columbina Bagai Vakum Penghisap Sperma! – Genshin Impact',
-            'ext': 'mp4',
+    _TESTS = [
+        {
+            'url': 'https://nekopoi.care/l2d-sepongan-columbina-bagai-vakum-penghisap-sperma-genshin-impact',
+            'info_dict': {
+                'id': 'l2d-sepongan-columbina-bagai-vakum-penghisap-sperma-genshin-impact',
+                'title': 'Sepongan Columbina Bagai Vakum Penghisap Sperma! – Genshin Impact',
+                'ext': 'mp4',
+            },
+            'params': {'skip_download': True},
         },
-        'params': {'skip_download': True},
-    }]
+    ]
 
     def __init__(self, downloader=None):
         super().__init__(downloader)
@@ -46,19 +45,21 @@ class NekoPoiIE(InfoExtractor): # dosa di tanggung senidri!!
             raise self.StopExtraction('No cf_clearance! Mungkin kena proteksi, coba refresh page Nekopoi!')
 
     def _extract_myvidplay(self, url, webpage):
-        ie = MyVidPlayIE(self._downloader)
+        ie = _MyVidPlayIE(self._downloader)
         return ie._extract_from_webpage(url, webpage)
 
     def _extract_streampoi(self, url, webpage):
-        ie = StreamPoiIE(self._downloader)
+        ie = _StreamPoiIE(self._downloader)
         return ie._extract_from_webpage(url, webpage)
 
     def _extract_vidnest(self, url, webpage):
         return self._extract_jwplayer_data(webpage, 'jwplayer', require_title=False)['formats']
 
     @staticmethod
-    def _get_urls(webpage,
-                  pattern=r'<iframe\s*src="(https://(?:vidnest|bigshare|myvidplay|streampoi)\.(?:io|com|live)[^"]+)'):
+    def _get_urls(
+        webpage,
+        pattern=r'<iframe\s*src="(https://(?:vidnest|bigshare|myvidplay|streampoi)\.(?:io|com|live)[^"]+)',
+    ):
         urls = re.findall(pattern, webpage, re.DOTALL)
         return urls or []
 
@@ -76,16 +77,21 @@ class NekoPoiIE(InfoExtractor): # dosa di tanggung senidri!!
         slug = self._match_valid_url(url).group('slug')
         webpage = self._download_webpage(url, slug)
         video_title = self._og_search_title(webpage)
-        video_id = self._html_search_regex(r'<link\s*rel=shortlink\s*href=\'.*?(\d+)\'><link',
-                                           webpage, name='video id', fatal=False, default=slug)
+        video_id = self._html_search_regex(
+            r'<link\s*rel=shortlink\s*href=\'.*?(\d+)\'><link',
+            webpage,
+            name='video id',
+            fatal=False,
+            default=slug,
+        )
         urls = self._get_urls(webpage)
         formats = []
         if urls and isinstance(urls, list):
             for url in urls:
                 results = self._extract(url)
-                if isinstance(results, list): # jika list extend biar ga list in list
+                if isinstance(results, list):  # jika list extend biar ga list in list
                     formats.extend(results)
-                if isinstance(results, dict): # jika dictionary append
+                if isinstance(results, dict):  # jika dictionary append
                     formats.append(results)
         return {
             'id': video_id,
@@ -94,9 +100,9 @@ class NekoPoiIE(InfoExtractor): # dosa di tanggung senidri!!
         }
 
 
-class NekoPoiPlaylistIE(NekoPoiIE): # ERROR: url nya mirip kaya diatas, susah bedain
+class NekoPoiPlaylistIE(NekoPoiIE):  # ERROR: url nya mirip kaya diatas, susah bedain
     IE_NAME = 'nekopoi playlist'
-    _VALID_URL = r'https://nekopoi\.care/(?P<genre>hentai|jav)/(?P<slug>[^/?]+)'  # TODO: benerin regex
+    _VALID_URL = r'https://nekopoi\.care/(?P<genre>\w+)/(?P<slug>[^/?]+)/?$'  # TODO: benerin regex
     _WORKING = False
     _ENABLED = False
 
@@ -108,8 +114,12 @@ class NekoPoiPlaylistIE(NekoPoiIE): # ERROR: url nya mirip kaya diatas, susah be
         video_title = self._og_search_title(webpage)
         # Extract video ID
         video_id = self._html_search_regex(
-            r'<link\s*rel=shortlink\s*href=\'.*?(\d+)\'><link', webpage,
-            name='video id', fatal=False, default=slug)
+            r'<link\s*rel=shortlink\s*href=\'.*?(\d+)\'><link',
+            webpage,
+            name='video id',
+            fatal=False,
+            default=slug,
+        )
         # Get URLs with pattern
         pattern = rf'<a\s*href="(https://nekopoi\.care/{slug}(?:-episode-\d(?:-subtitle-indonesia)))/"\s*class="nk-episode-card">'
         urls = self._get_urls(webpage, pattern)
@@ -117,12 +127,15 @@ class NekoPoiPlaylistIE(NekoPoiIE): # ERROR: url nya mirip kaya diatas, susah be
 
         entries = []
         for url in urls:
-            entries.append(self.url_result(
-                url=url, ie=NekoPoiIE.ie_key(),
-                video_title=video_title,
-                video_id=video_id,
-                tags=genre,
-            ))
+            entries.append(
+                self.url_result(
+                    url=url,
+                    ie=NekoPoiIE.ie_key(),
+                    video_title=video_title,
+                    video_id=video_id,
+                    tags=genre,
+                ),
+            )
 
         return self.playlist_result(
             entries=entries,

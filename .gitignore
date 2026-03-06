@@ -1,3 +1,5 @@
 # Generated gitignore - Tue Feb 10 23:56:30 PM WIB 2026
 /dist/
 __pycache__
+/workdir/
+/*.code-workspace
