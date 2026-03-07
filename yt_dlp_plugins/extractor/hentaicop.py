@@ -16,7 +16,7 @@ from yt_dlp.utils import (
 
 class HenTaiCopIE(InfoExtractor):
     IE_NAME = 'hentaicop'
-    _VALID_URL = r'https://hentaicop\.com/(?P<slug>[\w-]+)/?$'
+    _VALID_URL = r'https://hentaicop\.com/(?P<slug>[%\w-]+)/?$'
 
     def _real_extract(self, url):
         slug = self._match_valid_url(url).group('slug')
@@ -67,7 +67,8 @@ class HenTaiCopIE(InfoExtractor):
 class HenTaiCopSeriesIE(HenTaiCopIE):
     IE_NAME = 'hentaicop:series'
     # 'https://hentaicop.com/series/android-wa-keiken-ninzuu-ni-hairimasu-ka-uncensored/'
-    _VALID_URL = r'https://hentaicop.com/series/(?P<slug>[\w-]+)/?$'
+    # _VALID_URL = r'https://hentaicop.com/series/(?P<slug>[%\w-]+)/?$'
+    _VALID_URL = r'https://hentaicop.com/series/(?P<slug>[%\w-]+)/?$'
 
     def _real_extract(self, url):
         slug = self._match_valid_url(url).group('slug')
