@@ -14,13 +14,14 @@
 | **[animepahe.si](https://animepahe.si/)**         | ✅✅✅⬜⬜ | 60% tested, 40% unknown |
 | **[nekopoi.care](https://nekopoi.care/)**         | ✅⬜⬜⬜⬜ | kadang-kiding (perlu cookies) |
 | **[hentaicop.com](https://hentaicop.com/)**       | ✅✅⬜⬜⬜ | 20% tested, 80% unknown |
+| **[tokusatsuindno.com](https://www.tokusatsuindo.com/)**       | ✅✅✅⬜⬜ | work,tapi mentok 360p kurasa  |
 | **[minioppai.org](https://minioppai.org/)**       | ✅⬜⬜⬜⬜ | kadang-kiding, masih asal jadi |
 | **[samehadaku.how](https://v1.samehadaku.how/)**  | ✅⬜⬜⬜⬜ | kadang-kadang |
 ---
 
 ## **NOTE**:
 
-### **Extractor [nekopoi](./nekopoi/yt_dlp_plugins/extractor/nekopoi.py)**:
+### **Extractor [nekopoi](/yt_dlp_plugins/extractor/nekopoi.py)**:
 
 **Gunakan `--cookies-from-browser`**
 
@@ -67,10 +68,19 @@
 
 ---
 
+### **Extractor [animepahe](./nekopoi/yt_dlp_plugins/extractor/animepahe.py)**:
+**Cukup export cookies sekali saja dari browser [firefox androwed](https://www.firefox.com/en-US/download/android/) meneggunakan Add-on [cookies.txt](https://github.com/hrdl-github/cookies-txt)**
+    
+- terus tinggal pake
+    `yt-dlp <URL animepahe> --cookies /path/to/file/cokies.txt`
+
+---
+
 ## **🎮 Juga Mampir ke Project Lain**:
 - **[wibu-downloader](https://github.com/Asep5K/wibu-downloader)**
 
 ---
+
 ## **Why "Multi Broken"?**
 - Kode asal jalan
 - Filosofi: "Better broken than nothing"
