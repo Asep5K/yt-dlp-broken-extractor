@@ -1,144 +1,120 @@
 import re
-import sys
-from pathlib import Path
+from itertools import count
 
-from yt_dlp.extractor.common import InfoExtractor
+from yt_dlp.extractor.common import (
+    InfoExtractor,
+    SearchInfoExtractor,
+)
+from yt_dlp.networking.exceptions import HTTPError
+from yt_dlp.utils import (
+    ExtractorError,
+    get_element_html_by_class,
+    get_element_html_by_id,
+)
 
-# sys.path.insert(0, str(Path(__file__).parent))
-from .myvidplay import _MyVidPlayIE
-from .streampoi import _StreamPoiIE
 
-
-# jangan protes kalo kualitas kode nya jelek
-# gw bukan programmer / yang ngerti banget python
-# gw cuma iseng belajar aja
-class NekoPoiIE(InfoExtractor):  # dosa di tanggung senidri!!
+class NekoPoiIE(InfoExtractor):
     IE_NAME = 'nekopoi'
     _VALID_URL = r'https://nekopoi\.care/(?P<slug>[\w-]+)/?$'
-    _TESTS = [
-        {
-            'url': 'https://nekopoi.care/l2d-sepongan-columbina-bagai-vakum-penghisap-sperma-genshin-impact',
-            'info_dict': {
-                'id': 'l2d-sepongan-columbina-bagai-vakum-penghisap-sperma-genshin-impact',
-                'title': 'Sepongan Columbina Bagai Vakum Penghisap Sperma! – Genshin Impact',
-                'ext': 'mp4',
-            },
-            'params': {'skip_download': True},
-        },
-    ]
-
-    def __init__(self, downloader=None):
-        super().__init__(downloader)
-        if downloader:
-            self.set_downloader(downloader)
-
-        self.extractor_map = {
-            'myvidplay': self._extract_myvidplay,
-            'streampoi': self._extract_streampoi,
-            'vidnest': self._extract_vidnest,
-        }
-
-    def _real_initialize(self):
-        if not self.get_param('cookiesfrombrowser'):
-            self.report_warning('pake --cookies-from-browser woy!!')
-        if not self._get_cookies('https://nekopoi.care').get('cf_clearance'):
-            raise self.StopExtraction('No cf_clearance! Mungkin kena proteksi, coba refresh page Nekopoi!')
-
-    def _extract_myvidplay(self, url, webpage):
-        ie = _MyVidPlayIE(self._downloader)
-        return ie._extract_from_webpage(url, webpage)
-
-    def _extract_streampoi(self, url, webpage):
-        ie = _StreamPoiIE(self._downloader)
-        return ie._extract_from_webpage(url, webpage)
-
-    def _extract_vidnest(self, url, webpage):
-        return self._extract_jwplayer_data(webpage, 'jwplayer', require_title=False)['formats']
-
-    @staticmethod
-    def _get_urls(
-        webpage,
-        pattern=r'<iframe\s*src="(https://(?:vidnest|bigshare|myvidplay|streampoi)\.(?:io|com|live)[^"]+)',
-    ):
-        urls = re.findall(pattern, webpage, re.DOTALL)
-        return urls or []
-
-    def _extract(self, url):
-        """pake loop ajah biar ga kebanyakan if else"""
-        webpage = self._download_webpage(url, 'webpage URL')
-
-        for site_name, extractor in self.extractor_map.items():
-            if site_name in url:
-                self.write_debug(f'Using extractor: {site_name}')
-                return extractor(url, webpage)
+    _EMBED_REGEX = [r'class="latestnow"><a\s*[^>]href="(?P<url>[^"]+)[^>]',
+                    r'href="(?P<url>[^"]+)"[^>]\s*class="nk-episode-card"']
+    # https://nekopoi.care/honey-blonde-2-episode-2-subtitle-indonesia/
 
     def _real_extract(self, url):
-        self.to_screen('⚠️ DOSA DI TANGGUNG SENDIRI!!')
+        slug = self._match_valid_url(url).group('slug')
+        nekopoi_page = self._download_webpage(url, slug)
+        return {
+            'id': slug,
+            'title': self._og_search_title(nekopoi_page) or self._html_extract_title(nekopoi_page),
+            'description': self._og_search_description(nekopoi_page),
+            **self._get_formats_and_thumbnails(nekopoi_page),
+        }
+
+    def _get_formats_and_thumbnails(self, webpage):
+        formats = []
+        thumbnails = []
+        for url in self._get_url(webpage):
+            _formats = self._extract_embed_url(url)
+            if _formats and _formats.get('url'):
+                formats.append(_formats)
+            if _formats and _formats.get('formats'):
+                formats.extend(_formats['formats'])
+            if _formats and _formats.get('thumbnail'):
+                thumbnails.append({'url': _formats['thumbnail']})
+        return {
+            'formats': formats,
+            'thumbnails': thumbnails,
+        }
+
+    def _extract_embed_url(self, url):
+        if 'vidnest' in url:
+            webpage = self._download_webpage(url, 'vidnest page')
+            return self._extract_jwplayer_data(webpage, 'jwplayer', require_title=False)
+        extractor_lists = ['Vidara', 'StreamPoi', 'MyVidPlay']
+        for ext_name in extractor_lists:
+            if ext_name.lower() not in url:
+                continue
+            ie = self._downloader.get_info_extractor(ext_name)
+            if not ie:
+                self.report_warning(f'Extractor {ext_name} not found')
+                continue
+            self.to_screen(f'Using extractor: {ext_name}')
+            try:
+                return ie.extract(url)
+            except Exception as e:
+                self.report_warning(f'Failed to extract with {ext_name}: {e}')
+                continue
+
+    def _get_url(self, webpage):
+        for i in count(1):
+            iframe_src = get_element_html_by_id(f'nk-stream-{i}', webpage)
+            if iframe_src is not None:
+                embed_url = self._html_search_regex(r'iframe\s*[^>]src="([^"]+)"', iframe_src, 'embed url')
+                if embed_url is not None:
+                    yield embed_url
+            else:
+                break
+
+    def _download_webpage(self, *args, **kwargs):
+        try:
+            return super()._download_webpage(*args, **kwargs)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                self.report_warning('Nekopoi pake SafeLine WAF, butuh cookies fresh dari browser')
+                status = getattr(e.cause, 'status', None)
+                if status == 468:
+                    raise ExtractorError('Coba refresh page nekopoi', expected=True)
+            raise
+
+
+class NekopoiHentaiIE(NekoPoiIE):
+    # https://nekopoi.care/hentai/oneshota-the-animation/
+    _VALID_URL = r'https://nekopoi\.care/hentai/(?P<slug>[\w-]+)/?$'
+    IE_NAME = 'nekopoi:hentai'
+
+    def _real_extract(self, url):
         slug = self._match_valid_url(url).group('slug')
         webpage = self._download_webpage(url, slug)
-        video_title = self._og_search_title(webpage)
-        video_id = self._html_search_regex(
-            r'<link\s*rel=shortlink\s*href=\'.*?(\d+)\'><link',
-            webpage,
-            name='video id',
-            fatal=False,
-            default=slug,
-        )
-        urls = self._get_urls(webpage)
-        formats = []
-        if urls and isinstance(urls, list):
-            for url in urls:
-                results = self._extract(url)
-                if isinstance(results, list):  # jika list extend biar ga list in list
-                    formats.extend(results)
-                if isinstance(results, dict):  # jika dictionary append
-                    formats.append(results)
-        return {
-            'id': video_id,
-            'title': video_title,
-            'formats': formats,
-        }
-
-
-class NekoPoiPlaylistIE(NekoPoiIE):  # ERROR: url nya mirip kaya diatas, susah bedain
-    IE_NAME = 'nekopoi playlist'
-    _VALID_URL = r'https://nekopoi\.care/(?P<genre>\w+)/(?P<slug>[^/?]+)/?$'  # TODO: benerin regex
-    _WORKING = False
-    _ENABLED = False
-
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        slug = mobj.group('slug')
-        genre = mobj.group('genre')
-        webpage = self._download_webpage(url, slug)
-        video_title = self._og_search_title(webpage)
-        # Extract video ID
-        video_id = self._html_search_regex(
-            r'<link\s*rel=shortlink\s*href=\'.*?(\d+)\'><link',
-            webpage,
-            name='video id',
-            fatal=False,
-            default=slug,
-        )
-        # Get URLs with pattern
-        pattern = rf'<a\s*href="(https://nekopoi\.care/{slug}(?:-episode-\d(?:-subtitle-indonesia)))/"\s*class="nk-episode-card">'
-        urls = self._get_urls(webpage, pattern)
-        self.write_debug(f'Found URLs: {urls}')
-
+        content = get_element_html_by_class('nk-episode-grid', webpage)
         entries = []
-        for url in urls:
-            entries.append(
-                self.url_result(
-                    url=url,
-                    ie=NekoPoiIE.ie_key(),
-                    video_title=video_title,
-                    video_id=video_id,
-                    tags=genre,
-                ),
-            )
+        for nekopoi_url in re.finditer(r'href="(?P<url>[^"]+)"[^>]', content):
+            if nekopoi_url:
+                entries.append(self.url_result(url=nekopoi_url.group('url'), ie=NekoPoiIE.ie_key()))
+        return self.playlist_result(entries=entries, playlist_id=slug,
+                                    playlist_title=self._og_search_title(webpage) or slug,
+                                    playlistT_description=self._og_search_description(webpage))
 
-        return self.playlist_result(
-            entries=entries,
-            playlist_id=video_id,
-            playlist_title=video_title,
-        )
+
+class NeekopoiSearchIE(SearchInfoExtractor, NekoPoiIE):
+    IE_NAME = 'nekopoi:search'
+    _SEARCH_KEY = 'nekopoi'
+
+    def _search_results(self, query):
+        base_url = f'https://nekopoi.care/search/{query}'
+        for i in range(3):
+            search_url = f'{base_url}/page/{i}'
+            webpage = self._download_webpage(search_url, query, note=f'Downloading page {i}')
+            content = get_element_html_by_class('nk-search-results', webpage)
+            for nekopoi_url in re.finditer(r'href="(?P<url>[^"]+)"[^>]', content):
+                if nekopoi_url:
+                    yield self.url_result(url=nekopoi_url.group('url'), ie=NekoPoiIE.ie_key())

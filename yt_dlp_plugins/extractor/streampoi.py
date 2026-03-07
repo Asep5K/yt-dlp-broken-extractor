@@ -1,69 +1,47 @@
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
+    ExtractorError,
     decode_packed_codes,  # kurang baca source code aku kang 😅
     urlencode_postdata,
 )
 
 
-# jangan protes kalo kualitas kode nya jelek
-# gw bukan programmer / yang ngerti banget python
-# gw cuma iseng belajar aja
-class _StreamPoiIE(InfoExtractor):
-    _VALID_URL = False
-    _EMBED_REGEX = [
-        r'<iframe\s*src=(https://streampoi\.com/.*?)',
-    ]
+class StreamPoiIE(InfoExtractor):
+    IE_NAME = 'streampoi'
+    # https://streampoi.com/e/bd96d4ucrfa6
+    # src="https://streampoi.com/embed-r45mcvw6uysr.html"
+    _VALID_URL = r'https://streampoi\.com/(?:e/)?(?P<id>[^/?#]+)$'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://streampoi\.com/[^"]+)"']
 
-    def _extract_from_webpage(self, url: str, webpage: str) -> list:
-        if 'streampoi' not in url:
-            raise self.StopExtraction
-        if not webpage:
-            return []
-        js = self._get_packed_js(url, webpage)
-        m3u8_url = self._search_regex(
-            r'file\s*:\s*"([^"]+master\.m3u8[^"]*)"',
-            js,
-            'm3u8 URL',
-            fatal=False,
-            default=None,
-        )
-        try:
-            return self._extract_m3u8_formats(
-                m3u8_url,
-                video_id='streampoi',
-                ext='mp4',
-            )
-        except Exception as e:
-            self.report_warning(f'StreamPoi: gagal extract formats: {e}')
-            return []
-
-    def _get_packed_js(self, url: str, webpage: str) -> str:
-        """decode js code yang di obfuscated"""
-        try:
-            # coba decode
-            return decode_packed_codes(webpage)
-        except AttributeError:
-            # kalo gagal berati request dulu
-            webpage = self._get_js_page(url, webpage)
-            return decode_packed_codes(webpage)
-        except Exception:
-            return
-
-    def _get_js_page(self, url: str, webpage: str) -> str | None:
-        """ambil token buat request js page nya"""
-        _op = self._html_search_regex(r'name="op" value="(.*?)"', webpage, name='op', fatal=False, default=None)
-        _auto = self._html_search_regex(r'name="auto" value="(.*?)"', webpage, name='auto', fatal=False, default=None)
-        streampoi_url = 'https://streampoi.com/dl'
-        if not _op or not _auto:
-            self.report_warning('gak nemu op and auto')
-            return
-        data = {
-            'op': _op,
-            'auto': _auto,
-            'file_code': url.rsplit('/', maxsplit=1)[1],
-            'referer': url,
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        strampoi_page = self._get_streampoi_page(url, video_id)
+        m3u8_url = self._search_regex(r'file\s*:\s*"([^"]+master\.m3u8[^"]*)"', strampoi_page, 'm3u8 URL')
+        return {
+            'title': video_id,
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id),
         }
-        response = self._request_webpage(streampoi_url, 'request js page', data=urlencode_postdata(data))
-        if response:
-            return self._webpage_read_content(response, streampoi_url, video_id='js page', encoding='utf-8')
-        return
+
+    def _get_streampoi_page(self, url, video_id):
+        """
+        Sebenernya tinggal hapus /e/ udah bisa request js page nya,
+        Tapi ya biar nambah nambah baris code aja.
+        """
+        if '/e/' in url:
+            streampoi_page = self._request_js_page(url, video_id)
+        else:
+            streampoi_page = self._download_webpage(url, video_id)
+        return decode_packed_codes(streampoi_page)
+
+    def _request_js_page(self, url, video_id):
+        try:
+            webpage = self._download_webpage(url, 'get op and auto, page')
+            if webpage:
+                op = self._html_search_regex(r'name="op"\s*value="([^"]+)"', webpage, name='op', fatal=False, default='embed')
+                auto = self._html_search_regex(r'name="auto"\s*value="([^"])"', webpage, name='auto', fatal=False, default='1')
+                post_data = {'op': op, 'auto': auto, 'file_code': video_id, 'referer': url}
+                js_page = self._request_webpage('https://streampoi.com/dl', 'request js page', data=urlencode_postdata(post_data))
+                return self._webpage_read_content(js_page, 'https://streampoi.com/dl', video_id='js page', encoding='utf-8')
+        except Exception as e:
+            raise ExtractorError(f'{e}', expected=True, cause=e)

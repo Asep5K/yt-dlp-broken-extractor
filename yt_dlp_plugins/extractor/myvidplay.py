@@ -1,62 +1,52 @@
-import re
-import secrets
-import string
+import random
 import time
 
 from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import urljoin
+from yt_dlp.utils import ExtractorError, parse_resolution, urljoin
+
+# <iframe src="https://myvidplay.com/e/6zxkrj9xw2qk"
 
 
-# jangan protes kalo kualitas kode nya jelek
-# gw bukan programmer / yang ngerti banget python
-# gw cuma iseng belajar aja
-class _MyVidPlayIE(InfoExtractor):
-    _VALID_URL = False
-    _EMBED_REGEX = [
-        r'iframe\s*src=(https://myvidplay\.com/.*?)$',
-    ]
+class MyVidPlayIE(InfoExtractor):
+    # https://myvidplay.com/e/6zxkrj9xw2qk
+    IE_NAME = 'myvidplay'
+    _VALID_URL = r'https://myvidplay.com/e/(?P<id>\w+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://myvidplay\.com/[^"]+)"']
 
-    def _extract_from_webpage(self, url, webpage):
-        if 'myvidplay' not in url:
-            raise self.StopExtraction
-        video_title = self._html_extract_title(webpage)
-        md5 = self._search_regex(r'\$\.get\(\'(/pass\w[^\']+)', webpage, 'md5', default=None)
-        token = self._search_regex(r'return\sa+\s\+\s"(\?token[^"]+)', webpage, 'token', default=None)
-        if not md5 or not token:
-            self.report_warning(f'Failed to extract MyVidPlay data from {url}')
-            return
-        valid_url = self._get_valid_url(md5, token)
-        format_id, height, width = self._parse_height_from_title(video_title)
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        myvidplay_page = self._download_webpage(url, video_id)
+        video_title = self._html_extract_title(myvidplay_page)
         return {
-            'url': valid_url,
-            'format_id': format_id,
-            'height': height,
-            'width': width,
-            'thumbnail': self._og_search_thumbnail(webpage),
+            'id': video_id,
+            'title': video_title,
+            'ext': 'mp4',
+            'url': self._get_final_url(myvidplay_page),
+            'thumbnail': self._og_search_thumbnail(myvidplay_page),
+            **parse_resolution(video_title),
+            'http_headers': {'referer': 'https://myvidplay.com/'},
         }
 
+    def _get_final_url(self, webpage):
+        token, md5_path = self._get_token_and_md5(webpage)
+        md5_url = urljoin('https://myvidplay.com', md5_path)
+        cloudatacdn_url = self._download_webpage(md5_url, 'cloudatacdn')
+        if not cloudatacdn_url:
+            raise ExtractorError('Tidak menemukan url dari clouddatacdn.com', expected=True)
+        expiry, randomtoken = self._generate_expiry_and_random_token()
+        return f'{cloudatacdn_url}{randomtoken}{token}{expiry}'
+
+    def _get_token_and_md5(self, webpage):
+        md5 = self._search_regex(r'\$\.get\(\'(/pass\w[^\']+)', webpage, 'md5', default=None)
+        token = self._search_regex(r'return\sa+\s\+\s"(\?token[^"]+)', webpage, 'token', default=None)
+        if token and md5:
+            return token, md5
+        if not token or not md5:
+            raise ExtractorError('Tidak menemukan token atau md5 hash', expected=True)
+
     @staticmethod
-    def _generate_random_token():
-        """Generate random token and expiry for MyVidPlay"""
-        rand = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
-        expiry = int((time.time() + 3600) * 1000)  # 1 hour from now
-        return rand, expiry
-
-    def _get_valid_url(self, md5, token):
-        random, expiry = self._generate_random_token()
-        md5_url = urljoin('https://myvidplay.com', md5)
-        base_url = self._download_webpage(md5_url, 'base URL', tries=10, timeout=30, errnote='Failed to download MyVidPlay page')
-        if not base_url:
-            self.report_warning('gak nemu base url nya njir')
-            return
-
-        return f'{base_url}{random}{token}{expiry}'
-
-    def _parse_height_from_title(self, title):
-        height = self._search_regex(r'\[?(\d+p)\]?', title, 'parse height', flags=re.IGNORECASE, default=0, fatal=False)
-        if height:
-            format_id = height.lower()
-            height = int(format_id.replace('p', '')) if 'p' in format_id else format_id
-            width = (height * 16) / 9
-            return format_id, height, width
-        return None, None, None
+    def _generate_expiry_and_random_token():
+        chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+        random_token = ''.join(random.choices(chars, k=10))
+        expiry = int((time.time() + 365 * 24 * 3600) * 1000)
+        return expiry, random_token
