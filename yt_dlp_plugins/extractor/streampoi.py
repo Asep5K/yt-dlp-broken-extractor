@@ -41,7 +41,6 @@ class StreamPoiIE(InfoExtractor):
                 op = self._html_search_regex(r'name="op"\s*value="([^"]+)"', webpage, name='op', fatal=False, default='embed')
                 auto = self._html_search_regex(r'name="auto"\s*value="([^"])"', webpage, name='auto', fatal=False, default='1')
                 post_data = {'op': op, 'auto': auto, 'file_code': video_id, 'referer': url}
-                js_page = self._request_webpage('https://streampoi.com/dl', 'request js page', data=urlencode_postdata(post_data))
-                return self._webpage_read_content(js_page, 'https://streampoi.com/dl', video_id='js page', encoding='utf-8')
+                return self._download_webpage('https://streampoi.com/dl', 'request js page', data=urlencode_postdata(post_data))
         except Exception as e:
-            raise ExtractorError(f'{e}', expected=True, cause=e)
+            raise ExtractorError(msg=e, expected=True, cause=e)
