@@ -32,9 +32,7 @@ class AnimePahePlayIE(InfoExtractor):
         # <title>Shiboyugi: Playing Death Games to Put Food on the Table Ep. 9 :: animepahe</title>
         raw_title = self._html_extract_title(episode_page)
         clean = raw_title.replace(':: animepahe', '').strip()
-        if ':' in clean:
-            return clean.replace(':', '')
-        return clean or raw_title.strip()
+        return clean.replace(':', '') or raw_title.strip()
 
     def _formats(self, episode_page):
         patterns = (r'data-src="(?P<url>https://kwik\.cx[^"]+)".*?data-resolution="(?P<res>\d+)"\s*data-audio="(?P<aud>\w+)"')
@@ -105,12 +103,7 @@ class AnimePaheAnimeIE(AnimePahePlayIE):
 
     def _dapatkan_data_json(self, playlist_id):
         for page_num in itertools.count(1):
-            query = {
-                'm': 'release',
-                'id': playlist_id,
-                'sort': 'episode_asc',
-                'page': page_num,
-            }
+            query = {'m': 'release', 'id': playlist_id, 'sort': 'episode_asc', 'page': page_num}
             cache_file = f'{playlist_id}_{page_num}'
             json_data = self.cache.load('animepahe', cache_file)
             if not json_data:
