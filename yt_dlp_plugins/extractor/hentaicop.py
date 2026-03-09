@@ -35,7 +35,7 @@ class HenTaiCopIE(InfoExtractor):
                 continue
             url = traverse_obj(data_json, ('sources', 0, 'file'))
             self.write_debug(f'm3u8 url: {url}')
-            yield from self._extract_m3u8_formats(url, title_or_slug, fatal=False)
+            yield from self._extract_m3u8_formats(url, title_or_slug, fatal=False, ext='mp4')
 
     def _search_b64(self, webpage):
         for b64 in re.finditer(r'value="(?P<b64>[^"]+)"\s*data-index=', webpage, re.S):
