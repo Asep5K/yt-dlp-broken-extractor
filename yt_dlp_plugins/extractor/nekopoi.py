@@ -41,39 +41,26 @@ class NekoPoiIE(InfoExtractor):
                 formats.extend(_formats['formats'])
             if _formats and _formats.get('thumbnail'):
                 thumbnails.append({'url': _formats['thumbnail']})
-        return {
-            'formats': formats,
-            'thumbnails': thumbnails,
-        }
+        return {'formats': formats, 'thumbnails': thumbnails}
 
     def _extract_embed_url(self, url):
-        if 'vidnest' in url:
-            webpage = self._download_webpage(url, 'vidnest page')
-            return self._extract_jwplayer_data(webpage, 'jwplayer', require_title=False)
-        extractor_lists = ['Vidara', 'StreamPoi', 'MyVidPlay']
-        for ext_name in extractor_lists:
-            if ext_name.lower() not in url:
-                continue
-            ie = self._downloader.get_info_extractor(ext_name)
-            if not ie:
-                self.report_warning(f'Extractor {ext_name} not found')
-                continue
-            self.to_screen(f'Using extractor: {ext_name}')
-            try:
-                return ie.extract(url)
-            except Exception as e:
-                self.report_warning(f'Failed to extract with {ext_name}: {e}')
-                continue
+        try:
+            if 'vidnest' in url:
+                webpage = self._download_webpage(url, 'vidnest page')
+                return self._extract_jwplayer_data(webpage, 'jwplayer', require_title=False)
+            return self._downloader.extract_info(url, download=False, process=False)
+        except Exception as e:
+            self.report_warning(f'Unexpected error: {e}')
+            return {}
 
     def _get_url(self, webpage):
         for i in count(1):
             iframe_src = get_element_html_by_id(f'nk-stream-{i}', webpage)
-            if iframe_src is not None:
-                embed_url = self._html_search_regex(r'iframe\s*[^>]src="([^"]+)"', iframe_src, 'embed url')
-                if embed_url is not None:
-                    yield embed_url
-            else:
+            if not iframe_src:
                 break
+            embed_url = self._html_search_regex(r'iframe\s*[^>]src="([^"]+)"', iframe_src, 'embed url')
+            if embed_url:
+                yield embed_url
 
     def _download_webpage(self, *args, **kwargs):
         try:
