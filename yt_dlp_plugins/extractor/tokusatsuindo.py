@@ -1,6 +1,5 @@
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
-    ExtractorError,
     get_element_html_by_id,
     urlencode_postdata,
 )
@@ -18,7 +17,7 @@ class TokuSatSuIE(InfoExtractor):
         # 1. cari layerc ontent
         content = get_element_html_by_id('muvipro_player_content_id', webpage)
         if not content:
-            raise ExtractorError('No player content found', ecpected=True)
+            self.raise_no_formats('No player content found', expected=True)
 
         # 2. extract video_id
         video_id = self._search_regex(r'data-id="(\d+)"', content, 'video_id')
@@ -31,29 +30,15 @@ class TokuSatSuIE(InfoExtractor):
                 break
 
             # 4. request ke aja sendiri: https://tenor.com/view/aja-sendiri-gif-6852732088276811860
-            embed_html = self._download_webpage(
-                'https://www.tokusatsuindo.com/wp-admin/admin-ajax.php',
-                video_id,
-                data=urlencode_postdata({
-                    'action': 'muvipro_player_content',
-                    'tab': f'p{tab_id}',
-                    'post_id': video_id,
-                }), headers={'Referer': url}, note=f'Fetching server {tab_id}')
+            embed_html = self._download_webpage('https://www.tokusatsuindo.com/wp-admin/admin-ajax.php', video_id,
+                                                data=urlencode_postdata({'action': 'muvipro_player_content', 'tab': f'p{tab_id}', 'post_id': video_id}), headers={'Referer': url})
 
             # 5. extract iframe dari response
             iframe_url = self._search_regex(r'<iframe[^>]+src="([^"]+)"', embed_html, 'embed url', default=None)
-
+            self.write_debug(iframe_url)
             if iframe_url and 'gdplayer' not in iframe_url:
                 # 6. panggil extractor yang sesuai
-                if 'drive.google.com' in iframe_url:
-                    ie = self._downloader.get_info_extractor('GoogleDrive')
-                elif 'myvidplay.com' in iframe_url:
-                    ie = self._downloader.get_info_extractor('MyVidPlay')
-                else:
-                    self.report_warning(f'Unsupported URL: {iframe_url}')
-                    continue
-
-                video_data = ie.extract(iframe_url)
+                video_data = self._downloader.extract_info(iframe_url, download=False, process=False)
                 if video_data:
                     if video_data.get('formats'):
                         formats.extend(video_data['formats'])
